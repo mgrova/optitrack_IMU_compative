@@ -30,6 +30,32 @@
 #include <chrono>
 #include <fstream>
 
+bool splitSerial(std::string _reply , std::vector<float> &_params){
+    // Mode 1
+    // std::istringstream iss(_reply);
+    // while( iss.good() ){
+    //     std::string substr;
+    //     std::getline( iss, substr, ' ');
+    //     float ind = strtof(substr.c_str(),0);
+    //     _params.push_back( ind );
+    // }
+    
+    // Mode 2
+    // std::istringstream iss(_reply);
+    // float ax, ay, az ,mx ,my ,mz ,gx,gy,gz,roll,pitch,yaw;
+    // iss >> ax >> ay >> az  >>mx  >>my  >>mz  >>gx >>gy >>gz >>pitch >> roll >>yaw;
+    // _params = {ax ,  ay ,  az  , mx  , my  , mz  , gx , gy , gz , pitch ,  roll , yaw};
+    
+    // Mode 3
+    std::istringstream iss(_reply);
+    std::copy(std::istream_iterator<float>(iss),std::istream_iterator<float>(),std::back_inserter(_params));
+    
+    // for (auto n : _params)
+    //     std::cout << n <<std::endl;
+    
+    return true;
+}
+
 int main(int _argc , char **_argv){
 
     if (_argc < 3){
@@ -94,23 +120,34 @@ int main(int _argc , char **_argv){
 
         ros::spinOnce();
 
+        std::vector<float> dataIMU;
         if(ser.available()){
+            // format: [ts ax ay az mx my mz gx gy gz pitch roll yaw]
             std::string result = ser.readline();
-            if (result != "")
-                std::cout << "Read from serial port: " << result << "\n";
+            if (result != ""){
+                std::cout << std::fixed << "Read from serial port: " << result << "\n";
+                splitSerial(result,dataIMU);
+            }
+        } 
+
+        if (dataIMU.size() == 12){
+            auto t1 = std::chrono::system_clock::now();
+            float incT = float(std::chrono::duration_cast<std::chrono::milliseconds>(t1-t0).count())/1000.0;
+            // Save log data with format: 
+            log << std::to_string( incT ) + " " + std::to_string( dataIMU[0] ) + " " + std::to_string( dataIMU[1] ) + " " + std::to_string( dataIMU[2] )+
+                                            " " + std::to_string( dataIMU[3] ) + " " + std::to_string( dataIMU[4] ) + " " + std::to_string( dataIMU[5] )+
+                                            " " + std::to_string( dataIMU[6] ) + " " + std::to_string( dataIMU[7] ) + " " + std::to_string( dataIMU[8] )+
+                                            " " + std::to_string( dataIMU[9] ) + " " + std::to_string( dataIMU[10] ) + " " + std::to_string( dataIMU[11] ) + "\n";
+            log.flush();
+
+            t0 = t1;
         }
 
-        auto t1 = std::chrono::system_clock::now();
-        float incT = float(std::chrono::duration_cast<std::chrono::milliseconds>(t1-t0).count())/1000.0;
-        // Save dataset
-        log << std::to_string( 0.0 ) + " " + std::to_string( float(0.0) ) + " " + std::to_string( float(0.0) ) + " " + "\n";
-        log.flush();
-
-        t0 = t1;
         r.sleep();
     }
 
-
+    ser.close();
+    log.close();
 
     return 0;
 }
