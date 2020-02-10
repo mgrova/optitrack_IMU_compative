@@ -24,13 +24,15 @@ project(optitrack_IMU_comparative)
 
 set(CMAKE_CXX_STANDARD 11)
 
-find_package(catkin REQUIRED roscpp geometry_msgs sensor_msgs)
+find_package(catkin REQUIRED roscpp geometry_msgs sensor_msgs )
 if(${catkin_FOUND})
 	catkin_package(
 		CATKIN_DEPENDS roscpp geometry_msgs sensor_msgs
-		INCLUDE_DIRS include
+		# INCLUDE_DIRS include
 	)
 endif(${catkin_FOUND})
+
+find_package(serial REQUIRED)
 
 find_package(Eigen3 REQUIRED)
 
@@ -48,3 +50,8 @@ endif(${catkin_FOUND})
 if(${Eigen3_FOUND})
 	target_include_directories(${PROJECT_NAME} PUBLIC "/usr/include/eigen3")
 endif()
+
+if(${serial_FOUND})
+	target_include_directories(${PROJECT_NAME} PUBLIC ${serial_INCLUDE_DIRS})
+	target_link_libraries(${PROJECT_NAME} LINK_PUBLIC ${serial_LIBRARIES} )
+endif(${serial_FOUND})
